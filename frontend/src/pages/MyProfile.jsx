@@ -92,8 +92,8 @@ const MyProfile = () => {
                     className="h-full w-full object-cover"
                   />
                   {isEditing && (
-                    <label className="absolute bottom-2 right-2 rounded-full bg-slate-800/90 px-2 py-1 text-xs text-slate-200 ring-1 ring-white/10 backdrop-blur-sm cursor-pointer transition hover:bg-slate-700">
-                      Change
+                    <label className="absolute bottom-1 right-1 rounded-lg bg-sky-500 px-3 py-1.5 text-xs font-medium text-white shadow-lg cursor-pointer transition hover:bg-sky-400">
+                      Change Photo
                       <input
                         type="file"
                         accept="image/*"
