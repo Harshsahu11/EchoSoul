@@ -67,13 +67,18 @@ const readConfirmedAppointments = () => {
 const Appointment = () => {
   const { serviceId } = useParams();
   const navigate = useNavigate();
-  const { Person } = useContext(AppContext);
+  const { Person, user } = useContext(AppContext);
 
   const service = Person.find((item) => item._id === serviceId);
 
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
-  const [form, setForm] = useState(INITIAL_FORM);
+  const [form, setForm] = useState(() => ({
+    ...INITIAL_FORM,
+    name: user?.name || "",
+    email: user?.email || "",
+    phone: user?.phone || "",
+  }));
   const [loading, setLoading] = useState(false);
   const [now, setNow] = useState(() => new Date());
   const [confirmedAppointments, setConfirmedAppointments] = useState(() =>
@@ -101,10 +106,15 @@ const Appointment = () => {
   useEffect(() => {
     setDate("");
     setTime("");
-    setForm(INITIAL_FORM);
+    setForm({
+      ...INITIAL_FORM,
+      name: user?.name || "",
+      email: user?.email || "",
+      phone: user?.phone || "",
+    });
     setLoading(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [serviceId]);
+  }, [serviceId, user]);
 
   const formatINR = (amount) =>
     new Intl.NumberFormat("en-IN", {
@@ -237,11 +247,16 @@ const Appointment = () => {
         id: `${serviceId}-${date}-${time}-${Date.now()}`,
         serviceId,
         serviceTitle: service.title,
+        serviceName: service.title,
         date,
         time,
         status: "confirmed",
         confirmedAt,
-        ...form,
+        userName: user?.name || form.name,
+        userEmail: user?.email || form.email,
+        userPhone: user?.phone || form.phone,
+        userId: user?.id || null,
+        notes: form.notes,
       };
       const updatedAppointments = [...latestAppointments, newAppointment];
 
@@ -270,7 +285,7 @@ const Appointment = () => {
           <img
             src={service.image}
             alt={service.title}
-            className="h-[300px] w-full rounded-xl object-cover"
+            className="h-72 w-full rounded-xl object-cover"
           />
 
           <h1 className="mt-4 text-3xl font-semibold">{service.title}</h1>
@@ -306,7 +321,9 @@ const Appointment = () => {
             required
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
-            className="w-full rounded-md border border-white/10 bg-transparent px-4 py-2"
+            readOnly={Boolean(user)}
+            disabled={Boolean(user)}
+            className="w-full rounded-md border border-white/10 bg-transparent px-4 py-2 disabled:cursor-not-allowed disabled:opacity-70"
           />
 
           <input

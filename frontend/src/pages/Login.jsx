@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useContext, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { AppContext } from "../context/AppContext";
 
 const USERS_STORAGE_KEY = "echosoulUsers";
 const TOKEN_STORAGE_KEY = "token";
@@ -42,9 +43,17 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
 
+  const { login, token } = useContext(AppContext);
+
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
+
+  useEffect(() => {
+    if (token) {
+      navigate("/my-profile");
+    }
+  }, [token, navigate]);
 
   useEffect(() => {
     const requestedMode = searchParams.get("mode");
@@ -113,6 +122,8 @@ const Login = () => {
         "echosoulCurrentUser",
         JSON.stringify(matchedUser),
       );
+
+      login(matchedUser);
 
       setLoading(false);
       setLoginForm(LOGIN_FORM);

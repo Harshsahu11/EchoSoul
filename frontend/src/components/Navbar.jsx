@@ -1,6 +1,7 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import { assets } from "../assets/assets";
 import { NavLink, useNavigate } from "react-router-dom";
+import { AppContext } from "../context/AppContext";
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -9,18 +10,7 @@ const Navbar = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
-  const [token, setToken] = useState(null);
-
-  const user = {
-    image: "https://i.pravatar.cc/40",
-  };
-
-  useEffect(() => {
-    const t = localStorage.getItem("token");
-    if (t) {
-      setToken(t);
-    }
-  }, []);
+  const { token, logout, user } = useContext(AppContext);
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
@@ -40,8 +30,7 @@ const Navbar = () => {
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    setToken(null);
+    logout();
     setDropdownOpen(false);
   };
 
@@ -75,11 +64,7 @@ const Navbar = () => {
             : "border border-transparent bg-transparent py-3"
         }`}
       >
-        <NavLink
-          to="/"
-          aria-label="Go to home page"
-          onClick={handleLogoClick}
-        >
+        <NavLink to="/" aria-label="Go to home page" onClick={handleLogoClick}>
           <img
             src={assets.logo}
             alt="logo"
@@ -181,10 +166,7 @@ const Navbar = () => {
               <NavLink to="/my-profile" onClick={() => setMenuOpen(false)}>
                 Profile
               </NavLink>
-              <NavLink
-                to="/my-appointments"
-                onClick={() => setMenuOpen(false)}
-              >
+              <NavLink to="/my-appointments" onClick={() => setMenuOpen(false)}>
                 My Appointments
               </NavLink>
               <button onClick={handleLogout}>Logout</button>
