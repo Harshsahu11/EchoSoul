@@ -10,11 +10,14 @@ import Contact from "./pages/Contact";
 import MyProfile from "./pages/MyProfile";
 import MyAppointments from "./pages/MyAppointments";
 import Appointment from "./pages/Appointment";
+import Payment from "./pages/Payment";
+import VideoCall from "./pages/VideoCall";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 
 const App = () => {
   const { token } = useContext(AppContext);
+  const authToken = token || window.localStorage.getItem("adminToken");
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white">
@@ -33,14 +36,22 @@ const App = () => {
 
           <Route
             path="/my-profile"
-            element={token ? <MyProfile /> : <Navigate to="/login" />}
+            element={authToken ? <MyProfile /> : <Navigate to="/login" />}
           />
           <Route
             path="/my-appointments"
-            element={token ? <MyAppointments /> : <Navigate to="/login" />}
+            element={authToken ? <MyAppointments /> : <Navigate to="/login" />}
           />
 
           <Route path="/appointment/:serviceId" element={<Appointment />} />
+          <Route
+            path="/payment/:appointmentId"
+            element={authToken ? <Payment /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/call/:appointmentId"
+            element={authToken ? <VideoCall /> : <Navigate to="/login" />}
+          />
         </Routes>
       </div>
 

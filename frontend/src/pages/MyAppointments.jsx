@@ -1,11 +1,80 @@
 import React, { useContext, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { AppContext } from "../context/AppContext";
 
 const APPOINTMENTS_STORAGE_KEY = "confirmedAppointments";
 
+const getSlotDateTime = (date, slot) => {
+  const [year, month, day] = date.split("-").map(Number);
+  const [timeValue, meridiem] = slot.split(" ");
+  const [rawHours, minutes] = timeValue.split(":").map(Number);
+
+  let hours = rawHours % 12;
+  if (meridiem === "PM") {
+    hours += 12;
+  }
+
+  return new Date(year, month - 1, day, hours, minutes, 0, 0);
+};
+
+const formatCountdown = (milliseconds) => {
+  const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+};
+
+const getSlotCountdownText = (appointment, now) => {
+  if (!appointment?.date || !appointment?.time) {
+    return null;
+  }
+
+  const appointmentDateTime = getSlotDateTime(
+    appointment.date,
+    appointment.time,
+  );
+  const windowStart = new Date(appointmentDateTime.getTime() - 10 * 60 * 1000);
+
+  if (now < windowStart) {
+    return `Starts in ${formatCountdown(windowStart.getTime() - now.getTime())}`;
+  }
+
+  if (now <= new Date(appointmentDateTime.getTime() + 45 * 60 * 1000)) {
+    return "Live now";
+  }
+
+  return "Ended";
+};
+
+const isWithinSlotWindow = (appointment, now) => {
+  if (!appointment?.date || !appointment?.time) {
+    return false;
+  }
+
+  const appointmentDateTime = getSlotDateTime(
+    appointment.date,
+    appointment.time,
+  );
+  const windowStart = new Date(appointmentDateTime.getTime() - 10 * 60 * 1000);
+  const windowEnd = new Date(appointmentDateTime.getTime() + 45 * 60 * 1000);
+
+  return now >= windowStart && now <= windowEnd;
+};
+
 const MyAppointments = () => {
+  const navigate = useNavigate();
   const { user, Person } = useContext(AppContext);
   const [appointments, setAppointments] = useState([]);
+  const [now, setNow] = useState(new Date());
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setNow(new Date());
+    }, 10 * 1000);
+
+    return () => window.clearInterval(intervalId);
+  }, []);
 
   const cancelAppointment = (id) => {
     const stored = window.localStorage.getItem(APPOINTMENTS_STORAGE_KEY);
@@ -19,9 +88,11 @@ const MyAppointments = () => {
   };
 
   const handlePayment = (appointment) => {
-    alert(
-      `Proceed to payment for ${appointment.serviceTitle || appointment.serviceName}`,
-    );
+    navigate(`/payment/${appointment.id}`);
+  };
+
+  const handleJoinCall = (appointment) => {
+    navigate(`/call/${appointment.id}`);
   };
 
   useEffect(() => {
@@ -151,6 +222,12 @@ const MyAppointments = () => {
                             {item.notes}
                           </div>
                         )}
+                        {item.paymentStatus === "paid" && (
+                          <div className="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-3 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-emerald-300">
+                            <span className="h-2.5 w-2.5 rounded-full bg-emerald-300" />
+                            {getSlotCountdownText(item, now)}
+                          </div>
+                        )}
                       </div>
 
                       <div className="mt-6 flex flex-wrap gap-3">
@@ -161,13 +238,40 @@ const MyAppointments = () => {
                         >
                           Cancel Appointment
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => handlePayment(item)}
-                          className="rounded-full border border-sky-500/30 bg-sky-500/10 px-5 py-3 text-sm font-medium text-sky-300 transition hover:border-sky-400 hover:bg-sky-500/20"
-                        >
-                          Make Payment
-                        </button>
+                        {item.paymentStatus === "paid" ? (
+                          isWithinSlotWindow(item, now) ? (
+                            <button
+                              type="button"
+                              onClick={() => handleJoinCall(item)}
+                              className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-5 py-3 text-sm font-medium text-emerald-300 transition hover:border-emerald-400 hover:bg-emerald-500/20"
+                            >
+                              Join Call
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              disabled
+                              className="rounded-full border border-slate-600/30 bg-slate-700/20 px-5 py-3 text-sm font-medium text-slate-400 cursor-not-allowed"
+                            >
+                              {getSlotDateTime(item.date, item.time) > now
+                                ? `Starts in ${formatCountdown(
+                                    getSlotDateTime(
+                                      item.date,
+                                      item.time,
+                                    ).getTime() - now.getTime(),
+                                  )}`
+                                : `Ended at ${item.time}`}
+                            </button>
+                          )
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handlePayment(item)}
+                            className="rounded-full border border-sky-500/30 bg-sky-500/10 px-5 py-3 text-sm font-medium text-sky-300 transition hover:border-sky-400 hover:bg-sky-500/20"
+                          >
+                            Make Payment
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
