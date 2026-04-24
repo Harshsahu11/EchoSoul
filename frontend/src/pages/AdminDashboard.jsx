@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { adminAPI } from "../services/api";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -18,19 +19,9 @@ const AdminDashboard = () => {
 
   const fetchDashboardStats = async () => {
     try {
-      const token = localStorage.getItem("adminToken");
-      const response = await fetch(
-        "http://localhost:3000/api/admin/dashboard-stats",
-        {
-          headers: {
-            atoken: token,
-          },
-        },
-      );
-
-      const data = await response.json();
-      if (data.success) {
-        setStats(data.stats);
+      const response = await adminAPI.getDashboardStats();
+      if (response.data.success) {
+        setStats(response.data.stats);
       }
     } catch (error) {
       console.error("Error fetching dashboard stats:", error);

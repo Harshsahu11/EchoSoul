@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { adminAPI } from "../services/api";
 
 const AdminLogin = () => {
   const navigate = useNavigate();
@@ -30,15 +31,8 @@ const AdminLogin = () => {
     setMessage({ type: "", text: "" });
 
     try {
-      const response = await fetch("http://localhost:3000/api/admin/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
-
-      const data = await response.json();
+      const response = await adminAPI.login(formData.email, formData.password);
+      const data = response.data;
 
       if (data.success) {
         localStorage.setItem("adminToken", data.token);
@@ -47,7 +41,7 @@ const AdminLogin = () => {
       } else {
         setMessage({ type: "error", text: data.message || "Login failed" });
       }
-    } catch (error) {
+    } catch {
       setMessage({ type: "error", text: "Network error. Please try again." });
     } finally {
       setLoading(false);

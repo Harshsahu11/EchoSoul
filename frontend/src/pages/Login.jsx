@@ -1,9 +1,8 @@
 import React, { useContext, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { AppContext } from "../context/AppContext";
-
-const USERS_STORAGE_KEY = "echosoulUsers";
-const TOKEN_STORAGE_KEY = "token";
+import { userAPI } from "../services/api";
+import { toast } from "react-toastify";
 
 const LOGIN_FORM = {
   email: "",
@@ -16,22 +15,6 @@ const SIGNUP_FORM = {
   phone: "",
   password: "",
   confirmPassword: "",
-};
-
-const readUsers = () => {
-  if (typeof window === "undefined") {
-    return [];
-  }
-
-  try {
-    const storedUsers = JSON.parse(
-      window.localStorage.getItem(USERS_STORAGE_KEY) ?? "[]",
-    );
-
-    return Array.isArray(storedUsers) ? storedUsers : [];
-  } catch {
-    return [];
-  }
 };
 
 const Login = () => {
@@ -96,103 +79,117 @@ const Login = () => {
     setSignupForm((current) => ({ ...current, [name]: value }));
   };
 
-  const handleLoginSubmit = (event) => {
+  const handleLoginSubmit = async (event) => {
     event.preventDefault();
     setLoading(true);
 
-    window.setTimeout(() => {
-      const users = readUsers();
-      const matchedUser = users.find(
-        (user) =>
-          user.email.toLowerCase() === loginForm.email.toLowerCase() &&
-          user.password === loginForm.password,
-      );
+    try {
+      const response = await userAPI.login(loginForm.email, loginForm.password);
 
-      if (!matchedUser) {
+      if (response.data.success) {
+        const userData = response.data.user || { email: loginForm.email };
+        login(response.data.token, userData);
+        setMessage({
+          type: "success",
+          text: "Login successful!",
+        });
+        setLoading(false);
+        setLoginForm(LOGIN_FORM);
+        setTimeout(() => navigate("/my-profile"), 1000);
+      } else {
         setLoading(false);
         setMessage({
           type: "error",
-          text: "Invalid email or password.",
+          text: response.data.message || "Invalid email or password.",
         });
-        return;
       }
-
-      window.localStorage.setItem(TOKEN_STORAGE_KEY, "123");
-      window.localStorage.setItem(
-        "echosoulCurrentUser",
-        JSON.stringify(matchedUser),
-      );
-
-      login(matchedUser);
-
+    } catch (error) {
       setLoading(false);
-      setLoginForm(LOGIN_FORM);
-      navigate("/my-profile");
-    }, 500);
+      const errorMessage =
+        error.response?.data?.message || "Login failed. Please try again.";
+      setMessage({
+        type: "error",
+        text: errorMessage,
+      });
+      console.error("Login error:", error);
+    }
   };
 
-  const handleSignupSubmit = (event) => {
+  const handleSignupSubmit = async (event) => {
     event.preventDefault();
     setLoading(true);
 
-    window.setTimeout(() => {
-      const trimmedName = signupForm.name.trim();
-      const trimmedEmail = signupForm.email.trim().toLowerCase();
-      const trimmedPhone = signupForm.phone.trim();
+    // Client-side validation
+    const trimmedName = signupForm.name.trim();
+    const trimmedEmail = signupForm.email.trim().toLowerCase();
+    const trimmedPhone = signupForm.phone.trim();
 
-      if (signupForm.password.length < 6) {
-        setLoading(false);
-        setMessage({
-          type: "error",
-          text: "Password must be at least 6 characters long.",
-        });
-        return;
-      }
-
-      if (signupForm.password !== signupForm.confirmPassword) {
-        setLoading(false);
-        setMessage({
-          type: "error",
-          text: "Passwords do not match.",
-        });
-        return;
-      }
-
-      const users = readUsers();
-      const userExists = users.some((user) => user.email === trimmedEmail);
-
-      if (userExists) {
-        setLoading(false);
-        setMessage({
-          type: "error",
-          text: "An account with this email already exists.",
-        });
-        return;
-      }
-
-      const newUser = {
-        id: `user-${Date.now()}`,
-        name: trimmedName,
-        email: trimmedEmail,
-        phone: trimmedPhone,
-        password: signupForm.password,
-        createdAt: new Date().toISOString(),
-      };
-
-      window.localStorage.setItem(
-        USERS_STORAGE_KEY,
-        JSON.stringify([...users, newUser]),
-      );
-      window.localStorage.setItem(TOKEN_STORAGE_KEY, "123");
-      window.localStorage.setItem(
-        "echosoulCurrentUser",
-        JSON.stringify(newUser),
-      );
-
+    if (signupForm.password.length < 8) {
       setLoading(false);
-      setSignupForm(SIGNUP_FORM);
-      navigate("/my-profile");
-    }, 500);
+      setMessage({
+        type: "error",
+        text: "Password must be at least 8 characters long.",
+      });
+      return;
+    }
+
+    if (signupForm.password !== signupForm.confirmPassword) {
+      setLoading(false);
+      setMessage({
+        type: "error",
+        text: "Passwords do not match.",
+      });
+      return;
+    }
+
+    try {
+      const response = await userAPI.register(
+        trimmedName,
+        trimmedEmail,
+        signupForm.password,
+        trimmedPhone,
+      );
+
+      if (response.data.success) {
+        setMessage({
+          type: "success",
+          text: "Account created successfully! Logging you in...",
+        });
+        setLoading(false);
+        setSignupForm(SIGNUP_FORM);
+
+        // Auto-login after successful signup
+        try {
+          const loginResponse = await userAPI.login(
+            trimmedEmail,
+            signupForm.password,
+          );
+          if (loginResponse.data.success) {
+            const userData = loginResponse.data.user || { email: trimmedEmail };
+            login(loginResponse.data.token, userData);
+            setTimeout(() => navigate("/my-profile"), 1500);
+          }
+        } catch (loginError) {
+          // If auto-login fails, redirect to login page
+          setTimeout(() => navigate("/login"), 1500);
+        }
+      } else {
+        setLoading(false);
+        setMessage({
+          type: "error",
+          text: response.data.message || "Signup failed. Please try again.",
+        });
+      }
+    } catch (error) {
+      setLoading(false);
+      const errorMessage =
+        error.response?.data?.message || "Signup failed. Please try again.";
+      setMessage({
+        type: "error",
+        text: errorMessage,
+      });
+      console.error("Signup error:", error);
+    }
   };
 
   return (

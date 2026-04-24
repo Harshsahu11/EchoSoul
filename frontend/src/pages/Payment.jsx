@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { API_URL } from "../services/api";
 
 const APPOINTMENTS_STORAGE_KEY = "confirmedAppointments";
 
@@ -69,7 +70,7 @@ const Payment = () => {
 
     try {
       const orderResponse = await fetch(
-        "http://localhost:3000/api/payment/create-order",
+        `${API_URL}/api/payment/create-order`,
         {
           method: "POST",
           headers: {
@@ -105,7 +106,7 @@ const Payment = () => {
         handler: async function (response) {
           setMessage("Verifying payment...");
           const verifyResponse = await fetch(
-            "http://localhost:3000/api/payment/verify",
+            `${API_URL}/api/payment/verify`,
             {
               method: "POST",
               headers: {

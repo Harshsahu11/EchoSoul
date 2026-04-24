@@ -1,25 +1,40 @@
 import nodemailer from "nodemailer";
+import { env, requireEnvGroup } from "../config/env.js";
 
-const transport = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: Number(process.env.SMTP_PORT) || 587,
-  secure: process.env.SMTP_SECURE === "true",
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
+let transport;
+
+const getTransport = () => {
+  requireEnvGroup("SMTP", {
+    SMTP_HOST: env.smtp.host,
+    SMTP_USER: env.smtp.user,
+    SMTP_PASS: env.smtp.pass,
+  });
+
+  if (!transport) {
+    transport = nodemailer.createTransport({
+      host: env.smtp.host,
+      port: env.smtp.port,
+      secure: env.smtp.secure,
+      auth: {
+        user: env.smtp.user,
+        pass: env.smtp.pass,
+      },
+    });
+  }
+
+  return transport;
+};
 
 export const sendEmail = async ({ to, subject, html, text }) => {
   const message = {
-    from: process.env.SMTP_FROM || process.env.SMTP_USER,
+    from: env.smtp.from,
     to,
     subject,
     text: text || html.replace(/<[^>]*>?/gm, ""),
     html,
   };
 
-  const result = await transport.sendMail(message);
+  const result = await getTransport().sendMail(message);
   return result;
 };
 

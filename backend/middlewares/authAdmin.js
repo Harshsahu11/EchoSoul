@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import { env } from "../config/env.js";
 
 const authAdmin = async (req, res, next) => {
   try {
@@ -10,11 +11,11 @@ const authAdmin = async (req, res, next) => {
       });
     }
 
-    const tokenDecode = jwt.verify(atoken, process.env.JWT_SECRET);
+    const tokenDecode = jwt.verify(atoken, env.jwtSecret);
     if (
       !tokenDecode ||
       tokenDecode.role !== "admin" ||
-      tokenDecode.email !== process.env.ADMIN_EMAIL
+      tokenDecode.email !== env.adminEmail
     ) {
       return res.json({
         success: false,

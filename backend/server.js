@@ -1,6 +1,6 @@
 import express from "express";
 import cors from "cors";
-import "dotenv/config";
+import { env } from "./config/env.js";
 import connectDB from "./config/db.js";
 import connectCloudinary from "./config/cloudinary.js";
 import { createServer } from "http";
@@ -20,17 +20,40 @@ const app = express();
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    origin: env.frontendUrl,
     methods: ["GET", "POST"],
   },
 });
-const PORT = process.env.PORT || 4000;
 connectDB();
 connectCloudinary();
 
 //middlewares
 app.use(express.json());
-app.use(cors());
+
+// CORS configuration based on environment
+const corsOptions = {
+  origin: (origin, callback) => {
+    const allowedOrigins = [
+      env.frontendUrl,
+      process.env.PROD_FRONTEND_URL,
+      process.env.DEV_FRONTEND_URL,
+      "http://localhost:5173",
+      "http://localhost:3000",
+    ].filter(Boolean);
+
+    // Allow requests with no origin (mobile apps, curl requests, etc)
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+  credentials: true,
+  optionsSuccessStatus: 200,
+};
+
+app.use(cors(corsOptions));
 
 //api end point
 app.use("/api/user", userRouter);
@@ -42,6 +65,16 @@ app.use("/api/payment", paymentRouter);
 
 app.get("/", (req, res) => {
   res.send("API working");
+});
+
+// Centralized error handler middleware
+app.use((err, req, res, next) => {
+  const status = err.status || 500;
+  const message = err.message || "Internal Server Error";
+  if (!env.isProduction && err.stack) {
+    console.error(err.stack);
+  }
+  res.status(status).json({ success: false, message });
 });
 
 io.on("connection", (socket) => {
@@ -89,6 +122,6 @@ io.on("connection", (socket) => {
 
 startAppointmentReminderScheduler();
 
-server.listen(PORT, () => {
-  console.log("Server Started at : ", PORT);
+server.listen(env.port, () => {
+  console.log("Server Started at : ", env.port);
 });

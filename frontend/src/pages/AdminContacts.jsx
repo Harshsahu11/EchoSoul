@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { contactAPI } from "../services/api";
 
 const AdminContacts = () => {
   const navigate = useNavigate();
@@ -19,16 +20,9 @@ const AdminContacts = () => {
 
   const fetchContacts = async () => {
     try {
-      const token = localStorage.getItem("adminToken");
-      const response = await fetch("http://localhost:3000/api/contact/all", {
-        headers: {
-          atoken: token,
-        },
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        setContacts(data.contacts);
+      const response = await contactAPI.getContacts();
+      if (response.data.success) {
+        setContacts(response.data.contacts);
       }
     } catch (error) {
       console.error("Error fetching contacts:", error);
@@ -39,21 +33,8 @@ const AdminContacts = () => {
 
   const updateContactStatus = async (contactId, status) => {
     try {
-      const token = localStorage.getItem("adminToken");
-      const response = await fetch(
-        "http://localhost:3000/api/contact/update-status",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            atoken: token,
-          },
-          body: JSON.stringify({ contactId, status }),
-        },
-      );
-
-      const data = await response.json();
-      if (data.success) {
+      const response = await contactAPI.updateContactStatus(contactId, status);
+      if (response.data.success) {
         fetchContacts(); // Refresh the list
       }
     } catch (error) {
@@ -69,19 +50,8 @@ const AdminContacts = () => {
     }
 
     try {
-      const token = localStorage.getItem("adminToken");
-      const response = await fetch(
-        `http://localhost:3000/api/contact/delete/${contactId}`,
-        {
-          method: "DELETE",
-          headers: {
-            atoken: token,
-          },
-        },
-      );
-
-      const data = await response.json();
-      if (data.success) {
+      const response = await contactAPI.deleteContact(contactId);
+      if (response.data.success) {
         fetchContacts();
       }
     } catch (error) {

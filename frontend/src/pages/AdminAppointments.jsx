@@ -1,11 +1,26 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { appointmentAPI } from "../services/api";
 
 const AdminAppointments = () => {
   const navigate = useNavigate();
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
+
+  const fetchAppointments = async () => {
+    try {
+      const response = await appointmentAPI.getAppointments();
+      const data = response.data;
+      if (data.success) {
+        setAppointments(data.appointments);
+      }
+    } catch (error) {
+      console.error("Error fetching appointments:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     const token = localStorage.getItem("adminToken");
@@ -17,45 +32,13 @@ const AdminAppointments = () => {
     fetchAppointments();
   }, [navigate]);
 
-  const fetchAppointments = async () => {
-    try {
-      const token = localStorage.getItem("adminToken");
-      const response = await fetch(
-        "http://localhost:3000/api/appointment/all",
-        {
-          headers: {
-            atoken: token,
-          },
-        },
-      );
-
-      const data = await response.json();
-      if (data.success) {
-        setAppointments(data.appointments);
-      }
-    } catch (error) {
-      console.error("Error fetching appointments:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const updateAppointmentStatus = async (appointmentId, status) => {
     try {
-      const token = localStorage.getItem("adminToken");
-      const response = await fetch(
-        "http://localhost:3000/api/appointment/update-status",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            atoken: token,
-          },
-          body: JSON.stringify({ appointmentId, status }),
-        },
+      const response = await appointmentAPI.updateAppointmentStatus(
+        appointmentId,
+        status,
       );
-
-      const data = await response.json();
+      const data = response.data;
       if (data.success) {
         fetchAppointments(); // Refresh the list
       }

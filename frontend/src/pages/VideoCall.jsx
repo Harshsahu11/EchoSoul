@@ -2,8 +2,9 @@ import React, { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import io from "socket.io-client";
 import { toast } from "react-toastify";
+import { API_URL } from "../services/api";
 
-const SOCKET_SERVER_URL = "http://localhost:3000";
+const SOCKET_SERVER_URL = API_URL;
 
 const VideoCall = () => {
   const { appointmentId } = useParams();
@@ -15,7 +16,6 @@ const VideoCall = () => {
   const [isReady, setIsReady] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [meetingLink, setMeetingLink] = useState("");
-  const [appointmentData, setAppointmentData] = useState(null);
 
   useEffect(() => {
     const adminToken = localStorage.getItem("adminToken");
@@ -112,7 +112,7 @@ const VideoCall = () => {
           }
         });
 
-        socketRef.current.on("peer-joined", ({ peerId, initiatorId }) => {
+        socketRef.current.on("peer-joined", () => {
           toast.info("Peer joined the room.");
         });
 

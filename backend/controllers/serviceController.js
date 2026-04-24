@@ -95,15 +95,18 @@ const updateService = async (req, res) => {
       isAvailable,
     } = req.body;
 
-    const updateData = {
-      title,
-      coach,
-      description,
-      duration,
-      price: Number(price),
-      category,
-      isAvailable: isAvailable !== undefined ? isAvailable : true,
-    };
+    const updateData = {};
+
+    if (title !== undefined) updateData.title = title;
+    if (coach !== undefined) updateData.coach = coach;
+    if (description !== undefined) updateData.description = description;
+    if (duration !== undefined) updateData.duration = duration;
+    if (price !== undefined) updateData.price = Number(price);
+    if (category !== undefined) updateData.category = category;
+    if (isAvailable !== undefined) {
+      updateData.isAvailable =
+        isAvailable === true || isAvailable === "true";
+    }
 
     // Handle image update if provided
     if (req.file) {

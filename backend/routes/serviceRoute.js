@@ -15,8 +15,8 @@ const serviceRouter = express.Router();
 
 serviceRouter.get("/list", getAllServices);
 serviceRouter.get("/category/:category", getServicesByCategory);
-serviceRouter.get("/:serviceId", getServiceById);
 serviceRouter.get("/search", searchServices);
+serviceRouter.get("/:serviceId", getServiceById);
 
 // Admin routes
 serviceRouter.post("/add", authAdmin, upload.single("image"), addService);

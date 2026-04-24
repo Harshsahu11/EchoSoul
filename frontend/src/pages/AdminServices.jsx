@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { API_URL, serviceAPI } from "../services/api";
 
 const AdminServices = () => {
   const navigate = useNavigate();
@@ -17,6 +18,19 @@ const AdminServices = () => {
     image: null,
   });
 
+  const fetchServices = async () => {
+    try {
+      const response = await serviceAPI.getServices();
+      if (response.data.success) {
+        setServices(response.data.services);
+      }
+    } catch (error) {
+      console.error("Error fetching services:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     const token = localStorage.getItem("adminToken");
     if (!token) {
@@ -26,20 +40,6 @@ const AdminServices = () => {
 
     fetchServices();
   }, [navigate]);
-
-  const fetchServices = async () => {
-    try {
-      const response = await fetch("http://localhost:3000/api/service/list");
-      const data = await response.json();
-      if (data.success) {
-        setServices(data.services);
-      }
-    } catch (error) {
-      console.error("Error fetching services:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleInputChange = (e) => {
     const { name, value, files } = e.target;
@@ -63,8 +63,8 @@ const AdminServices = () => {
     try {
       const token = localStorage.getItem("adminToken");
       const url = editingService
-        ? `http://localhost:3000/api/service/update/${editingService._id}`
-        : "http://localhost:3000/api/service/add";
+        ? `${API_URL}/api/service/update/${editingService._id}`
+        : `${API_URL}/api/service/add`;
 
       const method = editingService ? "PUT" : "POST";
 
@@ -118,7 +118,7 @@ const AdminServices = () => {
     try {
       const token = localStorage.getItem("adminToken");
       const response = await fetch(
-        `http://localhost:3000/api/service/delete/${serviceId}`,
+        `${API_URL}/api/service/delete/${serviceId}`,
         {
           method: "DELETE",
           headers: {
@@ -140,7 +140,7 @@ const AdminServices = () => {
     try {
       const token = localStorage.getItem("adminToken");
       const response = await fetch(
-        `http://localhost:3000/api/service/update/${serviceId}`,
+        `${API_URL}/api/service/update/${serviceId}`,
         {
           method: "PUT",
           headers: {

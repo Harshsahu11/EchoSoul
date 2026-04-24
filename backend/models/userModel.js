@@ -12,6 +12,7 @@ const userSchema = new mongoose.Schema({
     unique: true,
     lowercase: true,
     trim: true,
+    // index: true, // Uncomment if you want to use field-level index instead of schema.index below
   },
   phone: {
     type: String,
@@ -59,8 +60,7 @@ userSchema.pre("save", function (next) {
   next();
 });
 
-// Index for better query performance
-userSchema.index({ email: 1 });
+
 
 const userModel = mongoose.models.user || mongoose.model("user", userSchema);
 

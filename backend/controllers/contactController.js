@@ -1,7 +1,8 @@
+import { env } from "../config/env.js";
 import contactModel from "../models/contactModel.js";
 
 // API to submit contact form
-const submitContact = async (req, res) => {
+const submitContact = async (req, res, next) => {
   try {
     const { name, email, subject, message } = req.body;
 
@@ -21,44 +22,54 @@ const submitContact = async (req, res) => {
 
     res.json({ success: true, message: "Message sent successfully" });
   } catch (error) {
-    console.log(error);
-    res.json({ success: false, message: error.message });
+    if (!env.isProduction) {
+      console.error(error);
+    }
+    next({
+      status: 500,
+      message: "Failed to send contact message. Please try again later.",
+    });
   }
 };
 
 // API to get all contact messages (Admin only)
-const getAllContacts = async (req, res) => {
+const getAllContacts = async (req, res, next) => {
   try {
     const contacts = await contactModel.find({}).sort({ createdAt: -1 });
 
     res.json({ success: true, contacts });
   } catch (error) {
-    console.log(error);
-    res.json({ success: false, message: error.message });
+    if (!env.isProduction) {
+      console.error(error);
+    }
+    next({ status: 500, message: "Failed to fetch contact messages." });
   }
 };
 
 // API to update contact status (Admin only)
-const updateContactStatus = async (req, res) => {
+const updateContactStatus = async (req, res, next) => {
   try {
-    const { contactId, status } = req.body;
+    const { contactId, id, status } = req.body;
+    const contactToUpdate = contactId || id;
 
     const validStatuses = ["new", "read", "replied", "closed"];
     if (!validStatuses.includes(status)) {
       return res.json({ success: false, message: "Invalid status" });
     }
 
-    await contactModel.findByIdAndUpdate(contactId, { status });
+    await contactModel.findByIdAndUpdate(contactToUpdate, { status });
 
     res.json({ success: true, message: "Contact status updated" });
   } catch (error) {
-    console.log(error);
-    res.json({ success: false, message: error.message });
+    if (!env.isProduction) {
+      console.error(error);
+    }
+    next({ status: 500, message: "Failed to update contact status." });
   }
 };
 
 // API to delete contact message (Admin only)
-const deleteContact = async (req, res) => {
+const deleteContact = async (req, res, next) => {
   try {
     const { contactId } = req.params;
 
@@ -66,8 +77,10 @@ const deleteContact = async (req, res) => {
 
     res.json({ success: true, message: "Contact message deleted" });
   } catch (error) {
-    console.log(error);
-    res.json({ success: false, message: error.message });
+    if (!env.isProduction) {
+      console.error(error);
+    }
+    next({ status: 500, message: "Failed to delete contact message." });
   }
 };
 

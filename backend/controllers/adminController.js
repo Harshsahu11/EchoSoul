@@ -1,46 +1,54 @@
 import jwt from "jsonwebtoken";
+import bcrypt from "bcrypt";
+import { env } from "../config/env.js";
 
 // API for admin login
-const loginAdmin = async (req, res) => {
+const loginAdmin = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    if (
-      email === process.env.ADMIN_EMAIL &&
-      password === process.env.ADMIN_PASSWORD
-    ) {
-      const token = jwt.sign({ email, role: "admin" }, process.env.JWT_SECRET, {
-        expiresIn: "8h",
-      });
-      res.json({ success: true, token });
-    } else {
-      res.json({ success: false, message: "Invalid credentials" });
+    if (email === env.adminEmail) {
+      const isMatch = env.adminPasswordHash
+        ? await bcrypt.compare(password, env.adminPasswordHash)
+        : password === env.adminPassword;
+
+      if (isMatch) {
+        const token = jwt.sign({ email, role: "admin" }, env.jwtSecret, {
+          expiresIn: "8h",
+        });
+        return res.json({ success: true, token });
+      }
     }
+    res.json({ success: false, message: "Invalid credentials" });
   } catch (error) {
-    console.log(error);
-    res.json({ success: false, message: error.message });
+    if (!env.isProduction) {
+      console.error(error);
+    }
+    next({ status: 500, message: "Failed to login as admin." });
   }
 };
 
 // API to get admin profile
-const getAdminProfile = async (req, res) => {
+const getAdminProfile = async (req, res, next) => {
   try {
     // For now, return basic admin info
     res.json({
       success: true,
       adminData: {
-        email: process.env.ADMIN_EMAIL,
+        email: env.adminEmail,
         role: "admin",
       },
     });
   } catch (error) {
-    console.log(error);
-    res.json({ success: false, message: error.message });
+    if (!env.isProduction) {
+      console.error(error);
+    }
+    next({ status: 500, message: "Failed to fetch admin profile." });
   }
 };
 
 // API to get dashboard stats
-const getDashboardStats = async (req, res) => {
+const getDashboardStats = async (req, res, next) => {
   try {
     const appointmentModel = (await import("../models/appointmentModel.js"))
       .default;
@@ -80,8 +88,10 @@ const getDashboardStats = async (req, res) => {
       },
     });
   } catch (error) {
-    console.log(error);
-    res.json({ success: false, message: error.message });
+    if (!env.isProduction) {
+      console.error(error);
+    }
+    next({ status: 500, message: "Failed to fetch dashboard data." });
   }
 };
 

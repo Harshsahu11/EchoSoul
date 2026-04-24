@@ -2,12 +2,25 @@ import Razorpay from "razorpay";
 import crypto from "crypto";
 import appointmentModel from "../models/appointmentModel.js";
 import { sendEmail, buildInviteEmail } from "../utils/mailer.js";
+import { env, requireEnvGroup } from "../config/env.js";
 
-// Initialize Razorpay
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET,
-});
+let razorpay;
+
+const getRazorpay = () => {
+  requireEnvGroup("Razorpay", {
+    RAZORPAY_KEY_ID: env.razorpay.keyId,
+    RAZORPAY_KEY_SECRET: env.razorpay.keySecret,
+  });
+
+  if (!razorpay) {
+    razorpay = new Razorpay({
+      key_id: env.razorpay.keyId,
+      key_secret: env.razorpay.keySecret,
+    });
+  }
+
+  return razorpay;
+};
 
 // API to create payment order
 const createPaymentOrder = async (req, res) => {
@@ -26,12 +39,12 @@ const createPaymentOrder = async (req, res) => {
       payment_capture: 1, // Auto capture
     };
 
-    const order = await razorpay.orders.create(options);
+    const order = await getRazorpay().orders.create(options);
 
     res.json({
       success: true,
       order,
-      key: process.env.RAZORPAY_KEY_ID,
+      key: env.razorpay.keyId,
     });
   } catch (error) {
     console.log(error);
@@ -52,7 +65,7 @@ const verifyPayment = async (req, res) => {
     // Create expected signature
     const sign = razorpay_order_id + "|" + razorpay_payment_id;
     const expectedSign = crypto
-      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+      .createHmac("sha256", env.razorpay.keySecret)
       .update(sign.toString())
       .digest("hex");
 
@@ -62,7 +75,7 @@ const verifyPayment = async (req, res) => {
         return res.json({ success: false, message: "Appointment not found" });
       }
 
-      const meetingLink = `${process.env.FRONTEND_URL}/call/${appointment._id}`;
+      const meetingLink = `${env.frontendUrl}/call/${appointment._id}`;
 
       await appointmentModel.findByIdAndUpdate(appointmentId, {
         paymentStatus: "paid",
@@ -85,7 +98,7 @@ const verifyPayment = async (req, res) => {
 
       await Promise.all([
         sendEmail({ to: appointment.userEmail, ...userEmailData }),
-        sendEmail({ to: process.env.ADMIN_EMAIL, ...adminEmailData }),
+        sendEmail({ to: env.adminEmail, ...adminEmailData }),
       ]);
 
       res.json({ success: true, message: "Payment verified successfully" });

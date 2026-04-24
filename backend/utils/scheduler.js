@@ -1,5 +1,6 @@
 import appointmentModel from "../models/appointmentModel.js";
 import { sendEmail, buildInviteEmail } from "./mailer.js";
+import { env } from "../config/env.js";
 
 export const startAppointmentReminderScheduler = () => {
   setInterval(async () => {
@@ -18,7 +19,7 @@ export const startAppointmentReminderScheduler = () => {
       for (const appointment of appointments) {
         const meetingLink =
           appointment.meetingLink ||
-          `${process.env.FRONTEND_URL}/call/${appointment._id}`;
+          `${env.frontendUrl}/call/${appointment._id}`;
 
         const userEmailData = buildInviteEmail({
           recipientName: appointment.userDetails?.name || appointment.userEmail,
@@ -34,7 +35,7 @@ export const startAppointmentReminderScheduler = () => {
 
         await Promise.all([
           sendEmail({ to: appointment.userEmail, ...userEmailData }),
-          sendEmail({ to: process.env.ADMIN_EMAIL, ...adminEmailData }),
+          sendEmail({ to: env.adminEmail, ...adminEmailData }),
         ]);
 
         appointment.inviteEmailSent = true;
